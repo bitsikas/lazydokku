@@ -75,13 +75,8 @@ class DokkuProvider:
         """
         if app not in self._config:
             self._config[app] = {}
-            config = self.executor.run("config:show", app)
-            for line in config.splitlines()[1:]:
-                if ":" not in line.strip():
-                    continue
-                key, value = line.split(":", 1)
-                value = value.strip()
-                self._config[app][key] = value
+            config = self.executor.run("config:export", "--format=json", app)
+            self._config[app].update(json.loads(config))
 
         return self._config[app]
 
