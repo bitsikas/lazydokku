@@ -1,17 +1,19 @@
+import json
+import shlex
 import datetime
 import subprocess
 
 
 class DokkuCommandExecutor:
-
-    def __init__(self, dokku_bin: list):
-        self.dokku_bin = list(dokku_bin)
+    def __init__(self, dokku_bin: tuple):
+        self.dokku_bin = tuple(dokku_bin)
         self._history = []
 
     @property
     def history(self):
         return "\n".join(
-            "%s" % h for h in self._history
+            f"> {h['stamp']}: {h['cmd']}\n{h['response'].decode()}\n" % h
+            for h in self._history
         )
 
     def run(self, cmd, *args):
@@ -19,14 +21,22 @@ class DokkuCommandExecutor:
         stamp = datetime.datetime.now()
         try:
             output = subprocess.check_output(
-                self.dokku_bin + [cmd] + list(args), stderr=subprocess.DEVNULL
+                self.dokku_bin + (cmd,) + args, stderr=subprocess.DEVNULL
             )
             self._history.append(
-                {"cmd":(cmd,)+args, "response": output, "stamp":stamp}
+                {
+                    "cmd": shlex.join(self.dokku_bin + (cmd,) + args),
+                    "response": output,
+                    "stamp": stamp,
+                }
             )
         except:
             self._history.append(
-                {"cmd":(cmd,)+args, "response": "error", "stamp":stamp}
+                {
+                    "cmd": shlex.join(self.dokku_bin + (cmd,) + args),
+                    "response": "error",
+                    "stamp": stamp,
+                }
             )
             return ""
         return output.decode()
