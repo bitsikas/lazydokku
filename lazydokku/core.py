@@ -13,7 +13,7 @@ class DokkuCommandExecutor:
     def history(self):
         return "\n".join(
             f"> {i}: {h['stamp']}: {h['cmd']}\n{h['response'].decode()}\n"
-            for i,h in enumerate(self._history)
+            for i, h in enumerate(self._history)
         )
 
     def run(self, cmd, *args):

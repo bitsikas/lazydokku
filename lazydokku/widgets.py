@@ -113,7 +113,6 @@ class DokkuApp:
             ] = new_value
             self.show_config()
 
-
     def refresh_apps(self):
         self.apps_menu.clear()
         self.apps_menu.add_item_list(self.dokku_provider.apps)
