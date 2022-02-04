@@ -1,7 +1,7 @@
 import click
 
-from . import core
-from . import widgets
+from lazydokku import core
+from lazydokku import widgets
 
 
 @click.command()
