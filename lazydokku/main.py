@@ -1,7 +1,7 @@
 import click
 
-import core
-import widgets
+from . import core
+from . import widgets
 
 
 @click.command()

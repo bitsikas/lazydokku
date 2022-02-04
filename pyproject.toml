@@ -5,10 +5,15 @@ version = "0.1.0"
 description = "TUI for dokku"
 authors = ["Kostas Papakonstantinou <k@carrotwd.com>"]
 license = "MIT"
+packages = [
+    { include = "lazydokku" },
+]
+
+
 
 [tool.poetry.dependencies]
-python = "^3.7"
 py-cui = "^0.1.4"
+click = "^8.0.3"
 
 [tool.poetry.dev-dependencies]
 Faker = "^11.3.0"
