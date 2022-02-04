@@ -88,11 +88,13 @@ class DokkuProvider:
     def domains(self, app: str):
         """Example output"""
         if app not in self._domains:
-            domains_output = self.executor.run("domains:report", app)
-            info, enabled, vhosts, *_ = domains_output.splitlines()
-            self._domains[app] = [
-                d.strip() for d in vhosts.split(":", 1)[1].split()
-            ]
+            domains_output = self.executor.run("domains:report").splitlines()
+            for start in range(len(domains_output))[0:None:5]:
+                info, enabled, vhosts, *_ = domains_output[start : start + 5]
+                _, app_name, *_ = info.split(" ", 2)
+                self._domains[app_name] = [
+                    d.strip() for d in vhosts.split(":", 1)[1].split()
+                ]
 
         return self._domains[app]
 
