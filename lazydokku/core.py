@@ -12,8 +12,8 @@ class DokkuCommandExecutor:
     @property
     def history(self):
         return "\n".join(
-            f"> {h['stamp']}: {h['cmd']}\n{h['response'].decode()}\n" % h
-            for h in self._history
+            f"> {i}: {h['stamp']}: {h['cmd']}\n{h['response'].decode()}\n"
+            for i,h in enumerate(self._history)
         )
 
     def run(self, cmd, *args):
