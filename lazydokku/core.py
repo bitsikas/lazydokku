@@ -150,19 +150,6 @@ class DokkuProvider(dict):
         self.executor.run("apps:create", new_app)
         self.refresh()
 
-    def config(self, app: str):
-        """Example output
-        =====> appname env vars
-        KEY:        VALUE
-
-        """
-        return self[app].config
-
-    def domains(self, app: str):
-        return self[app].domains
-
-    def add_domain(self, app, domain):
-        self[app].domains.append(domain)
 
     def letsencrypt(self, app):
         """Example output
