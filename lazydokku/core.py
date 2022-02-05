@@ -12,7 +12,7 @@ class DokkuCommandExecutor:
     @property
     def history(self):
         return "\n".join(
-            f"> {i}: {h['stamp']}: {h['cmd']}\n{h['response'].decode()}\n"
+            f"> {i}: {h['stamp']}: {h['cmd']}\n{h['response']}\n"
             for i, h in enumerate(self._history)
         )
 
@@ -22,24 +22,17 @@ class DokkuCommandExecutor:
         try:
             output = subprocess.check_output(
                 self.dokku_bin + (cmd,) + args, stderr=subprocess.DEVNULL
-            )
-            self._history.append(
-                {
-                    "cmd": shlex.join(self.dokku_bin + (cmd,) + args),
-                    "response": output,
-                    "stamp": stamp,
-                }
-            )
+            ).decode()
         except:
-            self._history.append(
-                {
-                    "cmd": shlex.join(self.dokku_bin + (cmd,) + args),
-                    "response": "error",
-                    "stamp": stamp,
-                }
-            )
-            return ""
-        return output.decode()
+            output = ""
+        self._history.append(
+            {
+                "cmd": shlex.join(self.dokku_bin + (cmd,) + args),
+                "response": output or "error",
+                "stamp": stamp,
+            }
+        )
+        return output
 
 
 class DokkuConfig(dict):
@@ -96,16 +89,16 @@ class DokkuApplication:
         self,
         name: str,
         metadata: str,
-        domains: list,
+        domains: DokkuDomains,
+        configs: DokkuConfig,
         executor: DokkuCommandExecutor,
     ):
         self.executor = executor
         self.name = name
         self.metadata = json.loads(metadata)
-        self.domains = DokkuDomains(
-            app=self.name, executor=self.executor, metadata=domains
-        )
-        self.config = DokkuConfig(
+        self.domains = domains
+        self.config = configs
+        DokkuConfig(
             app=self.name,
             executor=self.executor,
             metadata=self.executor.run(
@@ -138,7 +131,16 @@ class DokkuProvider(dict):
             self[app] = DokkuApplication(
                 name=app,
                 executor=self.executor,
-                domains=domains,
+                domains=DokkuDomains(
+                    app=app, executor=self.executor, metadata=domains
+                ),
+                configs=DokkuConfig(
+                    app=app,
+                    executor=self.executor,
+                    metadata=self.executor.run(
+                        "config:export", "--format=json", app
+                    ),
+                ),
                 metadata=metadata,
             )
 
@@ -150,6 +152,10 @@ class DokkuProvider(dict):
         self.executor.run("apps:create", new_app)
         self.refresh()
 
+    def __delitem__(self, key):
+
+        self.executor.run("apps:destroy", "--force", key)
+        super().__delitem__(key)
 
     def letsencrypt(self, app):
         """Example output

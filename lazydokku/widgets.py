@@ -46,6 +46,20 @@ class DokkuApp:
             self.dokku_provider.add_app(new_app)
         self.refresh_apps()
 
+    def confirm_remove(self):
+        app = self.apps_menu.get()
+
+        self.root.show_yes_no_popup(f"Are you sure you want to remove {app}", command=self.remove_app)
+    
+    def remove_app(self, response=None):
+        app = self.apps_menu.get()
+        if response:
+            del self.dokku_provider[app]
+            self.refresh_apps()
+        else:
+            pass
+
+
     def _create_app_menu(self):
         self.apps_menu = self.root.add_scroll_menu(
             "Apps",
@@ -55,6 +69,7 @@ class DokkuApp:
             column_span=1,
         )
         self.apps_menu.add_key_command(py_cui.keys.KEY_ENTER, self.add_app)
+        self.apps_menu.add_key_command(py_cui.keys.KEY_DELETE, self.confirm_remove)
         self.apps_menu.set_border_color(py_cui.GREEN_ON_BLACK)
         self.apps_menu.set_selected_color(py_cui.BLACK_ON_GREEN)
         self.apps_menu.set_on_selection_change_event(self.refresh_views)
