@@ -58,7 +58,7 @@ class DokkuApp:
         self.apps_menu.set_border_color(py_cui.GREEN_ON_BLACK)
         self.apps_menu.set_selected_color(py_cui.BLACK_ON_GREEN)
         self.apps_menu.set_on_selection_change_event(self.refresh_views)
-        self.apps_menu.add_item_list(self.dokku_provider.apps)
+        self.apps_menu.add_item_list(self.dokku_provider)
 
     def _create_domains_menu(self):
 
@@ -83,12 +83,12 @@ class DokkuApp:
             )
 
         else:
-            self.dokku_provider.add_domain(self.selected_app, new_domain)
+            self.dokku_provider[self.selected_app].domains.append(new_domain)
             self.refresh_views()
 
     def show_config(self):
         try:
-            value = self.dokku_provider.config(self.selected_app)[
+            value = self.dokku_provider[self.selected_app].config[
                 self.configs_menu.get()
             ]
         except KeyError:
@@ -97,7 +97,7 @@ class DokkuApp:
 
     def edit_config(self, new_value=None):
         try:
-            value = self.dokku_provider.config(self.selected_app)[
+            value = self.dokku_provider[self.selected_app].config[
                 self.configs_menu.get()
             ]
         except KeyError:
@@ -108,14 +108,14 @@ class DokkuApp:
             )
         else:
 
-            self.dokku_provider.config(self.selected_app)[
+            self.dokku_provider[self.selected_app].config[
                 self.selected_config
             ] = new_value
             self.show_config()
 
     def refresh_apps(self):
         self.apps_menu.clear()
-        self.apps_menu.add_item_list(self.dokku_provider.apps)
+        self.apps_menu.add_item_list(self.dokku_provider)
 
     def refresh_views(self):
         self.selected_app = self.apps_menu.get()
@@ -127,16 +127,14 @@ class DokkuApp:
             % (self.dokku_provider.letsencrypt(self.selected_app),)
         )
         self.domains_menu.add_item_list(
-            self.dokku_provider.domains(self.selected_app)
+            self.dokku_provider[self.selected_app].domains
         )
         self.configs_menu.clear()
         self.configs_menu.add_item_list(
-            self.dokku_provider.config(self.selected_app).keys()
+            self.dokku_provider[self.selected_app].config.keys()
         )
         self.show_config()
-        self.history_view.set_text(
-            self.dokku_provider.executor.history
-        )
+        self.history_view.set_text(self.dokku_provider.executor.history)
 
 
 def run(dokku_provider):

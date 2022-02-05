@@ -42,30 +42,113 @@ class DokkuCommandExecutor:
         return output.decode()
 
 
-class DokkuProvider:
+class DokkuConfig(dict):
+    def __init__(
+        self,
+        app: str,
+        executor: DokkuCommandExecutor,
+        metadata: str,
+        *args,
+        **kwargs,
+    ):
+        self.executor = executor
+        self.app = app
+        super().__init__(*args, **kwargs)
+        super().update(json.loads(metadata))
+
+    def __setitem__(self, key, value):
+        self.executor.run("config:set", self.app, key, value)
+        self[key] = value
+
+    def __delitem__(self, key):
+        self.executor.run("config:unset", self.app, key)
+        del self[key]
+
+
+class DokkuDomains(list):
+    def __init__(
+        self,
+        app: str = None,
+        executor: DokkuCommandExecutor = None,
+        metadata: list = None,
+        *args,
+        **kwargs,
+    ):
+        assert app is not None
+        assert executor is not None
+        assert metadata is not None
+        self.app = app
+        self.executor = executor
+        info, enabled, vhosts, *_ = metadata
+        assert (
+            self.app in info
+        ), f"Mismatching domains provided for {self.app}: {info}"
+        super().__init__(*args, **kwargs)
+        super().extend(vhosts.split(":", 1)[1].split())
+
+    def append(self, item):
+        self.executor.run("domains:add", self.app, item)
+        super().append(item)
+
+
+class DokkuApplication:
+    def __init__(
+        self,
+        name: str,
+        metadata: str,
+        domains: list,
+        executor: DokkuCommandExecutor,
+    ):
+        self.executor = executor
+        self.name = name
+        self.metadata = json.loads(metadata)
+        self.domains = DokkuDomains(
+            app=self.name, executor=self.executor, metadata=domains
+        )
+        self.config = DokkuConfig(
+            app=self.name,
+            executor=self.executor,
+            metadata=self.executor.run(
+                "config:export", "--format=json", self.name
+            ),
+        )
+
+
+class DokkuProvider(dict):
     def __init__(self, executor):
         self.executor = executor
-        self._apps = None
-        self._config = dict()
-        self._domains = dict()
-        self._letsencrypt = dict()
+        self.refresh()
+
+    def refresh(self):
+
+        app_list = [
+            a.strip() for a in self.executor.run("apps:list").splitlines()[1:]
+        ]
+        app_metadata = self.executor.run(
+            "apps:report", "--format", "json"
+        ).splitlines()
+        domains_list = []
+
+        domains_output = self.executor.run("domains:report").splitlines()
+        for start in range(len(domains_output))[0:None:5]:
+            domains_list.append(domains_output[start : start + 5])
+        for app, metadata, domains in zip(
+            app_list, app_metadata, domains_list
+        ):
+            self[app] = DokkuApplication(
+                name=app,
+                executor=self.executor,
+                domains=domains,
+                metadata=metadata,
+            )
 
     @property
     def apps(self):
-        """Example output"""
-        if self._apps is None:
-            self._apps = [
-                a.strip()
-                for a in self.executor.run("apps:list").splitlines()[1:]
-            ]
-        return self._apps
+        return self.keys()
 
     def add_app(self, new_app):
         self.executor.run("apps:create", new_app)
-        if self._apps is None:
-            self._apps = [new_app]
-        else:
-            self._apps.append(new_app)
+        self.refresh()
 
     def config(self, app: str):
         """Example output
@@ -73,29 +156,13 @@ class DokkuProvider:
         KEY:        VALUE
 
         """
-        if app not in self._config:
-            self._config[app] = {}
-            config = self.executor.run("config:export", "--format=json", app)
-            self._config[app].update(json.loads(config))
-
-        return self._config[app]
+        return self[app].config
 
     def domains(self, app: str):
-        """Example output"""
-        if app not in self._domains:
-            domains_output = self.executor.run("domains:report").splitlines()
-            for start in range(len(domains_output))[0:None:5]:
-                info, enabled, vhosts, *_ = domains_output[start : start + 5]
-                _, app_name, *_ = info.split(" ", 2)
-                self._domains[app_name] = [
-                    d.strip() for d in vhosts.split(":", 1)[1].split()
-                ]
-
-        return self._domains[app]
+        return self[app].domains
 
     def add_domain(self, app, domain):
-        self.executor.run("domains:add", app, domain)
-        self._domains[app].append(domain)
+        self[app].domains.append(domain)
 
     def letsencrypt(self, app):
         """Example output
