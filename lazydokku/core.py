@@ -84,7 +84,7 @@ class DokkuDomains(list):
         super().append(item)
 
 
-class DokkuApplication:
+class DokkuApplication(dict):
     def __init__(
         self,
         name: str,
@@ -95,7 +95,8 @@ class DokkuApplication:
     ):
         self.executor = executor
         self.name = name
-        self.metadata = json.loads(metadata)
+        self.update(json.loads(metadata))
+        #self.metadata = json.loads(metadata)
         self.domains = domains
         self.config = configs
         DokkuConfig(
@@ -110,9 +111,9 @@ class DokkuApplication:
 class DokkuProvider(dict):
     def __init__(self, executor):
         self.executor = executor
-        self.refresh()
+        # self.refresh()
 
-    def refresh(self):
+    def refresh(self, callback=None):
 
         app_list = [
             a.strip() for a in self.executor.run("apps:list").splitlines()[1:]
@@ -143,6 +144,8 @@ class DokkuProvider(dict):
                 ),
                 metadata=metadata,
             )
+        if callback is not None:
+            callback()
 
     @property
     def apps(self):
